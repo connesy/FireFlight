@@ -22,8 +22,8 @@ class Level extends Phaser.Scene {
     this.gameState.wallSpeed = 0.8;
     this.gameState.visionPlayer = 600; // Is modified later, based on the level
     // this.gameState.visionCaravan = 200;
-    // this.gameState.winXPos = gameWidth - 100;
-    this.gameState.winXPos = 500;
+    this.gameState.winXPos = gameWidth - 100;
+    // this.gameState.winXPos = 500;
     this.gameState.score = 10000;
     this.gameState.chestPoints = 5000;
     this.gameState.playerSettings = {};
