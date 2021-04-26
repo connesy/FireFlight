@@ -78,7 +78,7 @@ class MainMenu extends Phaser.Scene {
         }
       });
       btnPlayBack3.on('pointerdown', function () {
-        if (unlockedLevels.includes(2)) {
+        if (unlockedLevels.includes(3)) {
         currentScene.startLevel(3)
         } else {
           currentScene.cameras.main.shake(100,0.005);
