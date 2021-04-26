@@ -25,6 +25,7 @@ class Level extends Phaser.Scene {
     this.gameState.winXPos = gameWidth - 100;
     // this.gameState.winXPos = 500;
     this.gameState.score = 10000;
+    this.gameState.iniScore = 10000;
     this.gameState.chestPoints = 5000;
     this.gameState.playerSettings = {};
     this.gameState.playerSettings.screenshake = true;
@@ -62,6 +63,7 @@ class Level extends Phaser.Scene {
       this.events.off();
       this.scene.restart();
       this.gameState.gameRunning = true;
+      this.gameState.score =  this.gameState.iniScore;
     });
 
     this.input.keyboard.on('keyup-P', () => {
@@ -330,10 +332,12 @@ class Level extends Phaser.Scene {
     const mainCam = this.cameras.main.worldView;
     
     // Create a container to hold the progress bar and sprites that represent the different entities
-    this.gameState.container = this.add.container(mainCam.left, mainCam.top);
+    // this.gameState.container = this.add.container(mainCam.left, mainCam.top);
+    this.gameState.container = this.add.container(0,0);
     
     // Create the progress bar line
-    const progressBarY = mainCam.bottom - 20;
+    // const progressBarY = mainCam.bottom - 20;
+    const progressBarY = mainCam.height - 20;
     let line = this.add.line(
       mainCam.centerX, progressBarY, 
       0, 0, mainCam.width, 0,
@@ -343,7 +347,8 @@ class Level extends Phaser.Scene {
     this.gameState.container.progressBarLine = line;  // Add alias to the progressBarLine object
   
     // Add score text
-    let scoreText = this.add.text(mainCam.centerX, 20, `SCORE: ${this.gameState.score}`, { font: '32px Arial' }).setOrigin(0.5, 0.5);
+    // let scoreText = this.add.text(mainCam.centerX, 20, `SCORE: ${this.gameState.score}`, { font: '32px Arial' }).setOrigin(0.5, 0.5);
+    let scoreText = this.add.text(mainCam.width/2, 20, `SCORE: ${this.gameState.score}`, { font: '32px Arial' }).setOrigin(0.5, 0.5);
     scoreText.setColor(0xffffff);
     this.gameState.container.add(scoreText);
     this.gameState.container.scoreText = scoreText;  // Add alias to the scoreText object
@@ -379,7 +384,33 @@ class Level extends Phaser.Scene {
     const mainCam = this.cameras.main.worldView;
     this.gameState.container.x = mainCam.left;
     this.gameState.container.y = mainCam.top;
+    // this.gameState.container.x = 0;
+    // this.gameState.container.y = 0;
 
+    // const progressBarY = mainCam.bottom - 20;
+    const progressBarY = mainCam.height - 20;
+    this.gameState.container.progressBarLine.x = mainCam.width/2;
+    this.gameState.container.progressBarLine.y = progressBarY;
+    // this.gameState.container.progressBarLine.x = 0;
+    // this.gameState.container.progressBarLine.y = progressBarY;
+    this.gameState.container.progressBarLine.x1 = 0;
+    this.gameState.container.progressBarLine.y1 = 0;
+    this.gameState.container.progressBarLine.x2 = mainCam.width;
+    this.gameState.container.progressBarLine.y2 = 0;
+    // this.gameState.container.progressBarLine.setOrigin(0,0);
+
+    // this.gameState.container.scoreText.x = mainCam.centerX;
+    // this.gameState.container.scoreText.y = mainCam.top + 20;
+    this.gameState.container.scoreText.x = mainCam.width/2;
+    this.gameState.container.scoreText.y = 20;
+
+    // this.gameState.container.bestScoreText.x = mainCam.width * 0.9;
+    // this.gameState.container.bestScoreText.x = mainCam.height * 0.05;
+    this.gameState.container.bestScoreText.x = mainCam.width * 0.9;
+    this.gameState.container.bestScoreText.y = 20;
+
+    // mainCam.centerX, progressBarY, 
+    // 0, 0, mainCam.width, 0,
     // console.log(this.gameState.container);
   
     // Update score text
@@ -390,14 +421,18 @@ class Level extends Phaser.Scene {
     this.gameState.container.wodIndicators.big.x = wodIndicatorX;
     this.gameState.container.wodIndicators.small.x = wodIndicatorX;
     
+    this.gameState.container.wodIndicators.big.y = progressBarY;
+    this.gameState.container.wodIndicators.small.y = progressBarY;
   
     // Update position of player indicator
     const playerIndicatorX = this.getIndicatorX(this.gameState.player.x, mainCam)
     this.gameState.container.playerIndicator.x = playerIndicatorX;
+    this.gameState.container.playerIndicator.y = progressBarY;
     
     // Update position of caravan indicator
     const caravanIndicatorX = this.getIndicatorX(this.gameState.caravan.x, mainCam)
     this.gameState.container.caravanIndicator.x = caravanIndicatorX;
+    this.gameState.container.caravanIndicator.y = progressBarY-20;
   }
 
   getIndicatorX(trackingObjectX, mainCam) {
@@ -440,6 +475,10 @@ class Level extends Phaser.Scene {
 
     // Update the main best score
     bestScores[this.level-1] = this.bestScore;
+    
+    if (levelsCompleted.includes(this.level) == false) {
+      levelsCompleted.push(this.level)
+    }
   }
 
   winLevel() {
@@ -456,6 +495,9 @@ class Level extends Phaser.Scene {
     // Update best score indicator
     this.bestScore = Math.max(this.gameState.score, this.bestScore);
     this.gameState.container.bestScoreText.setText(`Best score: ${this.bestScore}`);
+    
+    // Update the main best score
+    bestScores[this.level-1] = this.bestScore;
 
     // Unlock next level
     let nextLevelName = `Level${this.level + 1}`
@@ -465,7 +507,7 @@ class Level extends Phaser.Scene {
       levelsUnlocked.push(this.level + 1)
     }
     
-    if (levelsUnlocked.includes(this.level) == false) {
+    if (levelsCompleted.includes(this.level) == false) {
       levelsCompleted.push(this.level)
     }
 

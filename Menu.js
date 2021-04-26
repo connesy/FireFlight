@@ -50,7 +50,7 @@ class MainMenu extends Phaser.Scene {
         ).setColor(clrText).setOrigin(0.5,0.5)
         
       this.add.text(txtLeft2, txtTop2,
-        "Arrow keys to move\n\nSpace to drop waypoint\n\n Ctrl to remove last dropped waypoint"
+        "Arrow keys to move\n\nSpace to drop waypoint\n\n Ctrl to remove \nlast dropped waypoint \n\n\nR to restart \n\nP to pause\n\nM to return to menu"
         ,styleTextSmall
         ).setColor(clrText).setOrigin(0.5,0.5)
 
