@@ -18,10 +18,10 @@ class Level extends Phaser.Scene {
     // Set various game-related properties
     this.gameState = {};
     this.gameState.wallSpeed = 1;
-    this.gameState.visionPlayer = 1500;
+    this.gameState.visionPlayer = 600;
     // this.gameState.visionCaravan = 200;
-    // this.gameState.winXPos = gameWidth - 100;
-    this.gameState.winXPos = 500;
+    this.gameState.winXPos = gameWidth - 100;
+    // this.gameState.winXPos = 500;
     this.gameState.score = 0;
     this.gameState.chestPoints = 5000;
     this.gameState.playerSettings = {};
@@ -44,7 +44,6 @@ class Level extends Phaser.Scene {
 
   create(data) {
     console.log(`${this.levelName} has just been started`)
-    this.gameState.currentScene = this
     this.gameState.frameCount = 0;
     this.gameState.cursorKeys = this.input.keyboard.createCursorKeys();
 
@@ -134,7 +133,7 @@ class Level extends Phaser.Scene {
     this.gameState.spotlight = spotlight;
     // this.gameState.spotlightCaravan = spotlightCaravan;
     
-    drawVisionPlayer(this.gameState);
+    this.drawVisionPlayer();
       
     // Burning wall of death (^tm)
     const WodInit = 100 
@@ -158,12 +157,12 @@ class Level extends Phaser.Scene {
     // Add some initial caravan waypoints
     // let waypointGroup = this.physics.add.staticGroup();
     let waypoint1 = Point(this.gameState.caravan.x + 110, this.gameState.caravan.y)
-    addCaravanWaypoint(this.gameState, waypoint1);
+    this.addCaravanWaypoint(waypoint1);
     let waypoint2 = Point(this.gameState.caravan.x + 200, this.gameState.caravan.y)
-    addCaravanWaypoint(this.gameState, waypoint2);
+    this.addCaravanWaypoint(waypoint2);
     
     // Calculate the initial direction
-    caravanCalcPath(this.gameState);
+    this.caravanCalcPath();
     
     let emitter = this.add.particles('flame').createEmitter({
       x: 0,
@@ -184,89 +183,65 @@ class Level extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, gameWidth-this.gameState.WoD.x, gameHeight);
   
     // Add progress bar
-    addProgressBar(this.gameState);
+    this.addProgressBar();
   }
 
   update(time, delta) {
-    this.gameState.currentScene = this
     this.gameState.frameCount += 1
 
     if (this.gameState.gameRunning) { 
-        // Do player related stuff
-        movePlayer(this.gameState)
-        if (this.gameState.player.body.velocity?.x !== 0 || this.gameState.player.body.velocity?.y !== 0) {
-        drawVisionPlayer(this.gameState);
-        }
-    
-        // Do caravan related stuff
-        /* Add a waypoint to the waypoint list. If there is now more than one waypoint,
-        also add a new line between the waypoints */  
+        /* Do player related stuff */
+        this.movePlayer()
+
         if (Phaser.Input.Keyboard.JustUp(this.gameState.cursorKeys.space)) {    
-        addCaravanWaypoint(this.gameState)
+          this.addCaravanWaypoint()
         }
         // Remove the last placed waypoint from the map
         if (Phaser.Input.Keyboard.JustUp(this.gameState.cursorKeys.shift)) {    
-        removeCaravanLastPoint(this.gameState)
+          this.removeCaravanLastPoint()
         }
 
-        // let keyObj = this.gameState.currentScene.input.keyboard.addKey('r');  // Get key object
-        // let r_isDown = keyObj.isDown;
-        // // var isUp = keyObj.isUp; 
-        // if (r_isDown){
-        //     console.log('asdf')
-        // }
-        // var keyObj = this.gameState.currentScene.input.keyboard.addKey('W');  // Get key object
-        // keyObj.on('up', function(event) {
-        //         console.log('asdf')
-        //     });
-
+        if (this.gameState.player.body.velocity?.x !== 0 || this.gameState.player.body.velocity?.y !== 0) {
+        this.drawVisionPlayer();
+        }
+    
+        /* Do caravan related stuff */
         // If caravan is within range of the waypoint it's moving to, remove that waypoint
         if (this.gameState.caravan.path.length > 0){
-        removeWaypointIfClose(this.gameState)
+          this.removeWaypointIfClose()
         }
     
         // If there are more waypoints left, move towards the first of those
         if (this.gameState.caravan.path.length > 0){
-        // Move the caravan
-        moveCaravan(this.gameState);
-    
-        // Draw line between caravan and first waypoint
-        drawCaravanWaypointLine(this.gameState);
+          // Move the caravan
+          this.moveCaravan();
+      
+          // Draw line between caravan and first waypoint
+          this.drawCaravanWaypointLine();
         }
     
         // Screenshake when close to WoD
         if (this.gameState.playerSettings.screenshake){
             if ((this.gameState.player.x - (this.gameState.WoD.x + this.gameState.WoD.width)) < (canvasWidth*0.1)){
-            this.gameState.currentScene.cameras.main.shake(100,0.005);
+            this.cameras.main.shake(100,0.005);
             }
             if ((this.gameState.player.x - (this.gameState.WoD.x + this.gameState.WoD.width)) < (canvasWidth*0.33)){
-            this.gameState.currentScene.cameras.main.shake(100,0.002);
+            this.cameras.main.shake(100,0.002);
             }
             if ((this.gameState.player.x - (this.gameState.WoD.x + this.gameState.WoD.width)) < (canvasWidth*0.6)){
-            this.gameState.currentScene.cameras.main.shake(100,0.0015);
+            this.cameras.main.shake(100,0.0015);
             }
-        }
-        if (this.gameState.caravan.path.length > 0){
-        // Move the caravan
-        moveCaravan(this.gameState);
-    
-        // Draw line between caravan and first waypoint
-        drawCaravanWaypointLine(this.gameState);
-
         }
         
         if ((this.gameState.frameCount % 4) == 0){
-        // Random walk around the vision size
-        flickerSize += 50* (Math.random()-0.5); 
-        // But above some minimum, and below some maximum
-        if (flickerSize < minFlicker){
-            flickerSize = minFlicker
-        }
-        if (flickerSize > maxFlicker){
-            flickerSize = maxFlicker
-        }
-            this.gameState.spotlight.displayWidth = this.gameState.visionPlayer + flickerSize;
-            this.gameState.spotlight.displayHeight = this.gameState.visionPlayer + flickerSize;
+          // Random walk around the vision size
+          flickerSize += 50* (Math.random()-0.5); 
+          // But above some minimum, and below some maximum
+          flickerSize = flickerSize < minFlicker ? minFlicker : flickerSize
+          flickerSize = flickerSize > maxFlicker ? maxFlicker : flickerSize
+
+          this.gameState.spotlight.displayWidth = this.gameState.visionPlayer + flickerSize;
+          this.gameState.spotlight.displayHeight = this.gameState.visionPlayer + flickerSize;
         }
     
         // if ((this.gameState.frameCount % 10) == 0){
@@ -274,338 +249,314 @@ class Level extends Phaser.Scene {
         // }
         
         
-        const cam = this.gameState.currentScene.cameras.main;
+        const cam = this.cameras.main;
         // let curCamX = Math.max(this.gameState.player.x,this.gameState.WoD.x+(2*canvasWidth/4));
         // curCamX = this.gameState.player.x;
         // cam.centerOn(curCamX,this.gameState.player.y);
-        cam.centerOn(this.gameState.player.x,this.gameState.player.y);
+        cam.centerOn(this.gameState.player.x, this.gameState.player.y);
         cam.setBounds(Math.max(0,this.gameState.WoD.x), 0, gameWidth-this.gameState.WoD.x, gameHeight);
         // cam.setBounds(0, 0, gameWidth-this.gameState.WoD.x, gameHeight);
         
-        updateProgressBar(this.gameState);
+        this.updateProgressBar();
     
-        moveWoD(this.gameState)
-        checkWinLoseConditions(this.gameState)
+        this.moveWoD()
+        this.checkWinLoseConditions()
         
         // Add some points 🤷‍♂️
         this.gameState.score += 1;
     } 
   }
-} 
 
-// HERE
-function addProgressBar(gameState) {
-  const mainCam = gameState.currentScene.cameras.main.worldView;
-  
-  // Create a container to hold the progress bar and sprites that represent the different entities
-  gameState.container = gameState.currentScene.add.container(mainCam.left, mainCam.top);
-  
-  // Create the progress bar line
-  const progressBarY = mainCam.bottom - 20;
-  let line = gameState.currentScene.add.line(
-    mainCam.centerX, progressBarY, 
-    0, 0, mainCam.width, 0,
-    clrProgressBar
-  ).setLineWidth(5).setOrigin(0.5, 0.5);
-  gameState.container.add(line);
-  gameState.container.progressBarLine = line;  // Add alias to the progressBarLine object
-
-  // Add score text
-  let scoreText = gameState.currentScene.add.text(mainCam.centerX, 20, `SCORE: ${gameState.score}`,{ font: '32px Arial' }).setOrigin(0.5, 0.5);
-  scoreText.setColor(0xffffff);
-  gameState.container.add(scoreText);
-  gameState.container.scoreText = scoreText;  // Add alias to the scoreText object
-
-  // Add WoD indicator on the progress bar
-  const wodIndicatorX = getIndicatorX((gameState.WoD.x + gameState.WoD.width), mainCam);
-  let wodIndicatorBig = gameState.currentScene.add.image(wodIndicatorX + 100, progressBarY, 'flame').setOrigin(0.5, 1).setScale(0.8);
-  let wodIndicatorSmall = gameState.currentScene.add.image(wodIndicatorX + 100, progressBarY, 'flame').setOrigin(0.5, 1).setScale(0.5);
-  gameState.container.add(wodIndicatorBig);
-  gameState.container.add(wodIndicatorSmall);
-  gameState.container.wodIndicators = { big: wodIndicatorBig, small: wodIndicatorSmall };  // Add alias to the wodIndicator objects
-
-  // Add player indicator on the progress bar
-  const playerIndicatorX = getIndicatorX(gameState.player.x, mainCam);
-  let playerIndicator = gameState.currentScene.add.image(playerIndicatorX + 100, progressBarY, 'player').setOrigin(0.5, 1).setScale(0.3);
-  gameState.container.add(playerIndicator);
-  gameState.container.playerIndicator = playerIndicator;  // Add alias to the playerIndicator object
-
-  // Add player indicator on the progress bar
-  const caravanIndicatorX = getIndicatorX(gameState.caravan.x, mainCam);
-  let caravanIndicator = gameState.currentScene.add.image(
-    caravanIndicatorX, progressBarY - 20, 'caravan').setRotation(Math.PI/2).setOrigin(0.5, 1).setScale(0.4);
-  gameState.container.add(caravanIndicator);
-  gameState.container.caravanIndicator = caravanIndicator;  // Add alias to the caravanIndicator object
-}
-
-function updateProgressBar(gameState) {
-  const mainCam = gameState.currentScene.cameras.main.worldView;
-  gameState.container.x = mainCam.left;
-  gameState.container.y = mainCam.top;
-
-  // Update score text
-  gameState.container.scoreText.setText(`SCORE: ${gameState.score}`);
-
-  // Update position of WoD indicator(s)
-  const wodIndicatorX = getIndicatorX((gameState.WoD.x + gameState.WoD.width), mainCam)
-  gameState.container.wodIndicators.big.x = wodIndicatorX;
-  gameState.container.wodIndicators.small.x = wodIndicatorX;
-
-  // Update position of player indicator
-  const playerIndicatorX = getIndicatorX(gameState.player.x, mainCam)
-  gameState.container.playerIndicator.x = playerIndicatorX;
-  
-  // Update position of caravan indicator
-  const caravanIndicatorX = getIndicatorX(gameState.caravan.x, mainCam)
-  gameState.container.caravanIndicator.x = caravanIndicatorX;
-}
-
-function getIndicatorX(trackingObjectX, mainCam) {
-  const indicatorProgress = 1 - (gameWidth - trackingObjectX) / gameWidth;
-  const indicatorX = indicatorProgress * mainCam.width + 100;
-  return indicatorX
-}
-
-function checkWinLoseConditions(gameState){
-  // Lose if wall of death touches caravan
-  if ((gameState.WoD.x + gameState.WoD.width) > gameState.caravan.x){
-    loseGame(gameState)
-  }
-  // Lose if wall of death touches player
-  if ((gameState.WoD.x + gameState.WoD.width) > gameState.player.x){
-    loseGame(gameState)
-  }
-  // Win if caravan has reached end
-  if (gameState.caravan.x >= gameState.winXPos){
-    winLevel(gameState)
-  }
-}
-
-function loseGame(gameState) {
-//   gameState.currentScene.scene.pause();
-  gameState.gameRunning = false;
-
-  let textPositionX = gameState.currentScene.cameras.main.worldView.centerX
-  let textPositionY = gameState.currentScene.cameras.main.worldView.centerY;
-  let loseText = "Congratulations! You lost!"
-  gameState.currentScene.add.text(textPositionX, textPositionY, loseText).setOrigin(0.5, 0.5);
-//   gameState.currentScene.scene.restart();
-}
-
-function winLevel(gameState) {
-  console.log("Entereed winLevel function")
-  let textPositionX = gameState.currentScene.cameras.main.worldView.centerX
-  let textPositionY = gameState.currentScene.cameras.main.worldView.centerY;
-  let winText = "Oh no! You won"
-
-  // Unlock next level
-  console.log(gameState.currentScene.levelName)
-  if (gameState.currentScene.levelName == 'Level1'){
-    winText += ` level ${gameState.currentScene.level}! Now on to level ${gameState.currentScene.level + 1}!`
-    gameState.currentScene.add.text(textPositionX, textPositionY, winText)
-    level2Unlocked = true
-    gameState.currentScene.time.addEvent({
-        delay: 3000,
-        loop: false,
-        callback: () => {
-          gameState.currentScene.scene.start("Level2");
-        }
-    });
-  }
-  if (gameState.currentScene.levelName == 'Level2'){
-    winText += ` level ${gameState.currentScene.level}! Now on to level ${gameState.currentScene.level + 1}!`
-    gameState.currentScene.add.text(textPositionX, textPositionY, winText)
-    level3Unlocked = true
-    gameState.currentScene.time.addEvent({
-      delay: 3000,
-      loop: false,
-      callback: () => {
-        gameState.currentScene.scene.start("Level3");
-      }
-  });
-  }
-  if (gameState.currentScene.levelName == 'Level3'){
-    winText += ` The Game!`
-    gameState.currentScene.add.text(textPositionX, textPositionY, winText)
-    gameFinished = true
-  }
-}
-
-function caravanCalcPath(gameState){
-  const dx = gameState.caravan.path[0].x - gameState.caravan.x
-  const dy = gameState.caravan.path[0].y - gameState.caravan.y
-  
-  // Get the angle of directional vector
-  const curAngle = Math.atan2(dy,dx);
-  // And the normalized direction
-  gameState.caravan.moveX = Math.cos(curAngle)
-  gameState.caravan.moveY = Math.sin(curAngle)
-  
-  // Rotate caravan to align with direction of movement
-  gameState.caravan.rotation = Math.PI/2 + curAngle;
-}
-
-function moveWoD(gameState){
-  gameState.WoD.x += gameState.wallSpeed
-  gameState.WoD2.x += gameState.wallSpeed
-  gameState.WoD3.x += gameState.wallSpeed
-  gameState.WoD4.x += gameState.wallSpeed
-  // gameState.WoD.width += gameState.wallSpeed
-
-  // gameState.WoD.emitter.x = gameState.WoD.x;
-  // gameState.WoD.emitter.y = gameHeight*Math.random();
-
-  gameState.WoD.emitter.emitParticleAt(gameState.WoD.x+gameState.WoD.width,gameHeight*Math.random());
-  // gameState.WoD.emitter.emitParticleAt(gameState.WoD.x+20,gameHeight*Math.random());
-  // gameState.WoD.emitter.emitParticleAt(gameState.WoD.x+20,gameHeight*Math.random());
-  // gameState.WoD.emitter.emitParticleAt(gameState.WoD.x+20,gameHeight*Math.random());
-
-}
-
-function removeWaypointIfClose(gameState) {
-  /* Check if caravan is close to first waypoint, and if it is, remove the waypoint */
-  const dx = gameState.caravan.path[0].x - gameState.caravan.x
-  const dy = gameState.caravan.path[0].y - gameState.caravan.y
-  
-  const minDist = 100// Minimum distance to move caravan
-  // const minDist = gameState.caravan.moveSpeed // Minimum distance to move caravan
-  // If caravan is close to the point
-  if ((dx*dx + dy*dy) <= minDist) {
-    gameState.caravan.setVelocityX(0)
-    gameState.caravan.setVelocityY(0)
+  addProgressBar() {
+    const mainCam = this.cameras.main.worldView;
     
-    // Remove a point
-    removeCaravanFirstPoint(gameState)
-  }
-}
-
-function moveCaravan(gameState){
-  if ((gameState.frameCount%10) == 0) {
-    caravanCalcPath(gameState)
-  }
-  // Move the caravan in direction, with speed
-  // gameState.caravan.x += gameState.caravan.moveX * gameState.caravan.moveSpeed;
-  // gameState.caravan.y += gameState.caravan.moveY * gameState.caravan.moveSpeed;
-  gameState.caravan.setVelocityX(gameState.caravan.moveX * gameState.caravan.moveSpeed)
-  gameState.caravan.setVelocityY(gameState.caravan.moveY * gameState.caravan.moveSpeed)
+    // Create a container to hold the progress bar and sprites that represent the different entities
+    this.gameState.container = this.add.container(mainCam.left, mainCam.top);
+    
+    // Create the progress bar line
+    const progressBarY = mainCam.bottom - 20;
+    let line = this.add.line(
+      mainCam.centerX, progressBarY, 
+      0, 0, mainCam.width, 0,
+      clrProgressBar
+    ).setLineWidth(5).setOrigin(0.5, 0.5);
+    this.gameState.container.add(line);
+    this.gameState.container.progressBarLine = line;  // Add alias to the progressBarLine object
   
-  // // Change the coordinates of the pathlines, such that pathline is drawn from caravan to point
-  // gameState.caravan.curPathLine.geom.x1 = gameState.caravan.x;
-  // gameState.caravan.curPathLine.geom.y1 = gameState.caravan.y;
-}
-
-function drawCaravanWaypointLine(gameState) {
-  /* If a line exists from caravan to waypoint, update the current line.
-     If one doesn't exist, create a new line between the caravan and the 
-     first waypoint. 
-  */
-  if (typeof gameState.caravan.curPathLine === "undefined") {
-    const newLine = gameState.currentScene.add.line(
-      0, 0, 
-      gameState.caravan.x, gameState.caravan.y, 
-      gameState.caravan.path[0].x, gameState.caravan.path[0].y, 
-      clrCaravan
-    ).setOrigin(0,0).setLineWidth(0.5,0.5);
-    gameState.caravan.curPathLine = newLine
-
-  } else {
-    gameState.caravan.curPathLine.geom.x1 = gameState.caravan.x;
-    gameState.caravan.curPathLine.geom.y1 = gameState.caravan.y;
-  }
-}
-
-function addCaravanWaypointLine(gameState, newPoint) {
-  // Logger.DEBUG("addCaravanWaypointLine")
-  // Draw a line between the two latest waypoints
-  const prevPoint = gameState.caravan.path[gameState.caravan.path.length-2];
-  const newLine = gameState.currentScene.add.line(0, 0, prevPoint.x, prevPoint.y, newPoint.x, newPoint.y, clrCaravan).setOrigin(0,0).setLineWidth(0.5,0.5);
-  gameState.caravan.pathLines.push(newLine);
-}
-
-function addCaravanWaypoint(gameState, newPoint){
-  // Logger.DEBUG("addCaravanWaypoint")
-
-  // If newPoint is not explicitly passed in, add waypoint to current player position
-  newPoint = newPoint || Point(gameState.player.x, gameState.player.y)
-  // Add a waypoint to the caravan
-  gameState.caravan.path.push(newPoint)
-
-  let newPointImage = gameState.currentScene.add.image(newPoint.x + 1, newPoint.y - 14, 'flag').setScale(0.25);
-  gameState.caravan.waypoints.push(newPointImage);
-
-  if (gameState.caravan.path.length > 1) {
-    addCaravanWaypointLine(gameState, newPoint)
-  }
-}
-
-function movePlayer(gameState) {
-  /* Update player position */
-
-  // Set velocity in X
-  if (gameState.cursorKeys.right.isDown) {
-    gameState.player.setVelocityX(speedX)
-  } 
-  if (gameState.cursorKeys.left.isDown) {
-    gameState.player.setVelocityX(-speedX)
-  }
-  if (gameState.cursorKeys.right.isUp && gameState.cursorKeys.left.isUp) {
-    gameState.player.setVelocityX(0)
-  }
-
-  // Set velocity in Y
-  if (gameState.cursorKeys.down.isDown) {
-    gameState.player.setVelocityY(speedY)
-  }
-  if (gameState.cursorKeys.up.isDown) {
-    gameState.player.setVelocityY(-speedY)
-  }
-  if (gameState.cursorKeys.down.isUp && gameState.cursorKeys.up.isUp) {
-    gameState.player.setVelocityY(0)
-  }
+    // Add score text
+    let scoreText = this.add.text(mainCam.centerX, 20, `SCORE: ${this.gameState.score}`, { font: '32px Arial' }).setOrigin(0.5, 0.5);
+    scoreText.setColor(0xffffff);
+    this.gameState.container.add(scoreText);
+    this.gameState.container.scoreText = scoreText;  // Add alias to the scoreText object
   
-  // const cam = gameState.currentScene.cameras.main;
-  // cam.centerOn(gameState.player.x,gameState.player.y);
-}
-
-function removeCaravanFirstPoint(gameState){
-  /* Remove the first point from the path list, the first waypoint from list of waypoints,
-     and if one or more path lines exist, also remove the first one.
-     
-     If this action leaves the path list empty, remove curPathLine from the caravan,
-     otherwise just update the curPathLine to point from the new "first" waipoint.
-  */
-  gameState.caravan.path.shift(0, 1);
-  gameState.caravan.waypoints.shift(0, 1).destroy();
-  gameState.caravan.pathLines.shift(0, 1)?.destroy();
-
-  if (gameState.caravan.path.length === 0) {
-    gameState.caravan.curPathLine?.destroy();
-    delete gameState.caravan.curPathLine;
-  } else {
-    gameState.caravan.curPathLine.geom.x2 = gameState.caravan.path[0].x;
-    gameState.caravan.curPathLine.geom.y2 = gameState.caravan.path[0].y;
-  }
-}
-function removeCaravanLastPoint(gameState){
-  /* Remove the latest added waypoint 
-  */
-  if (gameState.caravan.path.length > 0) {
-    gameState.caravan.path.pop();
-    gameState.caravan.waypoints.pop().destroy();
-    gameState.caravan.pathLines.pop()?.destroy();
+    // Add WoD indicator on the progress bar
+    const wodIndicatorX = this.getIndicatorX((this.gameState.WoD.x + this.gameState.WoD.width), mainCam);
+    let wodIndicatorBig = this.add.image(wodIndicatorX + 100, progressBarY, 'flame').setOrigin(0.5, 1).setScale(0.8);
+    let wodIndicatorSmall = this.add.image(wodIndicatorX + 100, progressBarY, 'flame').setOrigin(0.5, 1).setScale(0.5);
+    this.gameState.container.add(wodIndicatorBig);
+    this.gameState.container.add(wodIndicatorSmall);
+    this.gameState.container.wodIndicators = { big: wodIndicatorBig, small: wodIndicatorSmall };  // Add alias to the wodIndicator objects
+  
+    // Add player indicator on the progress bar
+    const playerIndicatorX = this.getIndicatorX(this.gameState.player.x, mainCam);
+    let playerIndicator = this.add.image(playerIndicatorX + 100, progressBarY, 'player').setOrigin(0.5, 1).setScale(0.3);
+    this.gameState.container.add(playerIndicator);
+    this.gameState.container.playerIndicator = playerIndicator;  // Add alias to the playerIndicator object
+  
+    // Add player indicator on the progress bar
+    const caravanIndicatorX = this.getIndicatorX(this.gameState.caravan.x, mainCam);
+    let caravanIndicator = this.add.image(
+      caravanIndicatorX, progressBarY - 20, 'caravan').setRotation(Math.PI/2).setOrigin(0.5, 1).setScale(0.4);
+    this.gameState.container.add(caravanIndicator);
+    this.gameState.container.caravanIndicator = caravanIndicator;  // Add alias to the caravanIndicator object
   }
 
-  // If there are no waypoints left, set the caravan velocity to 0
-  // and delete the line from caravan to waypoint
-  if (gameState.caravan.path.length === 0) {
-    gameState.caravan.setVelocity(0,0);
-    gameState.caravan.curPathLine?.destroy();
-    delete gameState.caravan.curPathLine;
+  updateProgressBar() {
+    const mainCam = this.cameras.main.worldView;
+    this.gameState.container.x = mainCam.left;
+    this.gameState.container.y = mainCam.top;
+  
+    // Update score text
+    this.gameState.container.scoreText.setText(`SCORE: ${this.gameState.score}`);
+  
+    // Update position of WoD indicator(s)
+    const wodIndicatorX = this.getIndicatorX((this.gameState.WoD.x + this.gameState.WoD.width), mainCam)
+    this.gameState.container.wodIndicators.big.x = wodIndicatorX;
+    this.gameState.container.wodIndicators.small.x = wodIndicatorX;
+  
+    // Update position of player indicator
+    const playerIndicatorX = this.getIndicatorX(this.gameState.player.x, mainCam)
+    this.gameState.container.playerIndicator.x = playerIndicatorX;
+    
+    // Update position of caravan indicator
+    const caravanIndicatorX = this.getIndicatorX(this.gameState.caravan.x, mainCam)
+    this.gameState.container.caravanIndicator.x = caravanIndicatorX;
   }
-}
 
-function drawVisionPlayer(gameState) {
-  // Move the spotlight sprite to the player position
-  gameState.spotlight.x = gameState.player.x;
-  gameState.spotlight.y = gameState.player.y;
-}
+  getIndicatorX(trackingObjectX, mainCam) {
+    const indicatorProgress = 1 - (gameWidth - trackingObjectX) / gameWidth;
+    const indicatorX = indicatorProgress * mainCam.width + 100;
+    return indicatorX
+  }
+
+  checkWinLoseConditions() {
+    // Lose if wall of death touches caravan
+    if ((this.gameState.WoD.x + this.gameState.WoD.width) > this.gameState.caravan.x){
+      this.loseGame()
+    }
+    // Lose if wall of death touches player
+    if ((this.gameState.WoD.x + this.gameState.WoD.width) > this.gameState.player.x){
+      this.loseGame()
+    }
+    // Win if caravan has reached end
+    if (this.gameState.caravan.x >= this.gameState.winXPos){
+      this.winLevel()
+    }
+  }
+
+  loseGame() {
+    Logger.DEBUG("Triggered loseGame()")
+    //   this.scene.pause();
+    this.gameState.gameRunning = false;
+  
+    let textPositionX = this.cameras.main.worldView.centerX
+    let textPositionY = this.cameras.main.worldView.centerY;
+    let loseText = "Congratulations! You lost!"
+    this.add.text(textPositionX, textPositionY, loseText).setOrigin(0.5, 0.5);
+    //   this.scene.restart();
+  }
+
+  winLevel() {
+    Logger.DEBUG("Triggered winLevel()")
+    let textPositionX = this.cameras.main.worldView.centerX
+    let textPositionY = this.cameras.main.worldView.centerY;
+    let winText = "Oh no! You won"
+  
+    // Unlock next level
+    let nextLevelName = `Level${this.level + 1}`
+    let hasNextLevel = this.scene.manager.keys.hasOwnProperty(nextLevelName);
+
+    if (hasNextLevel) {
+      winText += ` ${this.levelName}!\nNow on to ${nextLevelName}!`
+      this.add.text(textPositionX, textPositionY, winText)
+      this.time.addEvent({
+          delay: 3000,
+          loop: false,
+          callback: () => {
+            this.scene.start(nextLevelName);
+          }
+      });
+    } else {
+      winText += ` The Game!`
+      this.add.text(textPositionX, textPositionY, winText)
+      this.gameState.gameFinished = true
+    }
+  }
+
+  // Methods that relate to player controls
+  movePlayer() {
+    /* Update player position */
+  
+    // Set velocity in X
+    if (this.gameState.cursorKeys.right.isDown) {
+      this.gameState.player.setVelocityX(speedX)
+    } 
+    if (this.gameState.cursorKeys.left.isDown) {
+      this.gameState.player.setVelocityX(-speedX)
+    }
+    if (this.gameState.cursorKeys.right.isUp && this.gameState.cursorKeys.left.isUp) {
+      this.gameState.player.setVelocityX(0)
+    }
+  
+    // Set velocity in Y
+    if (this.gameState.cursorKeys.down.isDown) {
+      this.gameState.player.setVelocityY(speedY)
+    }
+    if (this.gameState.cursorKeys.up.isDown) {
+      this.gameState.player.setVelocityY(-speedY)
+    }
+    if (this.gameState.cursorKeys.down.isUp && this.gameState.cursorKeys.up.isUp) {
+      this.gameState.player.setVelocityY(0)
+    }
+  }
+
+  addCaravanWaypoint(newPoint){
+    // If newPoint is not explicitly passed in, add waypoint to current player position
+    newPoint = newPoint || Point(this.gameState.player.x, this.gameState.player.y)
+    // Add a waypoint to the caravan
+    this.gameState.caravan.path.push(newPoint)
+  
+    let newPointImage = this.add.image(newPoint.x + 1, newPoint.y - 14, 'flag').setScale(0.25);
+    this.gameState.caravan.waypoints.push(newPointImage);
+  
+    if (this.gameState.caravan.path.length > 1) {
+      this.addCaravanWaypointLine(newPoint)
+    }
+  }
+
+  caravanCalcPath() {
+    const dx = this.gameState.caravan.path[0].x - this.gameState.caravan.x
+    const dy = this.gameState.caravan.path[0].y - this.gameState.caravan.y
+    
+    // Get the angle of directional vector
+    const curAngle = Math.atan2(dy,dx);
+    // And the normalized direction
+    this.gameState.caravan.moveX = Math.cos(curAngle)
+    this.gameState.caravan.moveY = Math.sin(curAngle)
+    
+    // Rotate caravan to align with direction of movement
+    this.gameState.caravan.rotation = Math.PI/2 + curAngle;
+  }
+
+  moveCaravan() {
+    if ((this.gameState.frameCount % 10) === 0) {
+      this.caravanCalcPath()
+    }
+    // Move the caravan in direction, with speed
+    this.gameState.caravan.setVelocityX(this.gameState.caravan.moveX * this.gameState.caravan.moveSpeed)
+    this.gameState.caravan.setVelocityY(this.gameState.caravan.moveY * this.gameState.caravan.moveSpeed)
+  }
+
+  moveWoD() {
+    this.gameState.WoD.x += this.gameState.wallSpeed
+    this.gameState.WoD2.x += this.gameState.wallSpeed
+    this.gameState.WoD3.x += this.gameState.wallSpeed
+    this.gameState.WoD4.x += this.gameState.wallSpeed
+    // this.gameState.WoD.width += this.gameState.wallSpeed
+  
+    // this.gameState.WoD.emitter.x = this.gameState.WoD.x;
+    // this.gameState.WoD.emitter.y = gameHeight*Math.random();
+  
+    this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x + this.gameState.WoD.width, gameHeight * Math.random());
+    // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x+20,gameHeight*Math.random());
+    // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x+20,gameHeight*Math.random());
+    // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x+20,gameHeight*Math.random());
+  }
+
+  removeWaypointIfClose() {
+    /* Check if caravan is close to first waypoint, and if it is, remove the waypoint */
+    const dx = this.gameState.caravan.path[0].x - this.gameState.caravan.x
+    const dy = this.gameState.caravan.path[0].y - this.gameState.caravan.y
+    
+    const minDist = 100// Minimum distance to move caravan
+    // const minDist = this.gameState.caravan.moveSpeed // Minimum distance to move caravan
+    // If caravan is close to the point
+    if ((dx*dx + dy*dy) <= minDist) {
+      this.gameState.caravan.setVelocityX(0)
+      this.gameState.caravan.setVelocityY(0)
+      
+      // Remove a point
+      this.removeCaravanFirstPoint()
+    }
+  }
+
+  removeCaravanFirstPoint() {
+    /* Remove the first point from the path list, the first waypoint from list of waypoints,
+       and if one or more path lines exist, also remove the first one.
+       
+       If this action leaves the path list empty, remove curPathLine from the caravan,
+       otherwise just update the curPathLine to point from the new "first" waipoint.
+    */
+    this.gameState.caravan.path.shift(0, 1);
+    this.gameState.caravan.waypoints.shift(0, 1).destroy();
+    this.gameState.caravan.pathLines.shift(0, 1)?.destroy();
+  
+    if (this.gameState.caravan.path.length === 0) {
+      this.gameState.caravan.curPathLine?.destroy();
+      delete this.gameState.caravan.curPathLine;
+    } else {
+      this.gameState.caravan.curPathLine.geom.x2 = this.gameState.caravan.path[0].x;
+      this.gameState.caravan.curPathLine.geom.y2 = this.gameState.caravan.path[0].y;
+    }
+  }
+
+  removeCaravanLastPoint(){
+    /* Remove the latest added waypoint */
+    if (this.gameState.caravan.path.length > 0) {
+      this.gameState.caravan.path.pop();
+      this.gameState.caravan.waypoints.pop().destroy();
+      this.gameState.caravan.pathLines.pop()?.destroy();
+    }
+  
+    // If there are no waypoints left, set the caravan velocity to 0
+    // and delete the line from caravan to waypoint
+    if (this.gameState.caravan.path.length === 0) {
+      this.gameState.caravan.setVelocity(0,0);
+      this.gameState.caravan.curPathLine?.destroy();
+      delete this.gameState.caravan.curPathLine;
+    }
+  }
+
+  drawCaravanWaypointLine() {
+    /* If a line exists from caravan to waypoint, update the current line.
+       If one doesn't exist, create a new line between the caravan and the 
+       first waypoint. 
+    */
+    if (typeof this.gameState.caravan.curPathLine === "undefined") {
+      const newLine = this.add.line(
+        0, 0, 
+        this.gameState.caravan.x, this.gameState.caravan.y, 
+        this.gameState.caravan.path[0].x, this.gameState.caravan.path[0].y, 
+        clrCaravan
+      ).setOrigin(0,0).setLineWidth(0.5,0.5);
+      this.gameState.caravan.curPathLine = newLine
+  
+    } else {
+      this.gameState.caravan.curPathLine.geom.x1 = this.gameState.caravan.x;
+      this.gameState.caravan.curPathLine.geom.y1 = this.gameState.caravan.y;
+    }
+  }
+
+  addCaravanWaypointLine(newPoint) {
+    /* Draw a line between the two latest waypoints */
+    const prevPoint = this.gameState.caravan.path[this.gameState.caravan.path.length-2];
+    const newLine = this.add.line(0, 0, prevPoint.x, prevPoint.y, newPoint.x, newPoint.y, clrCaravan).setOrigin(0,0).setLineWidth(0.5,0.5);
+    this.gameState.caravan.pathLines.push(newLine);
+  }
+
+  drawVisionPlayer() {
+    // Move the spotlight sprite to the player position
+    this.gameState.spotlight.x = this.gameState.player.x;
+    this.gameState.spotlight.y = this.gameState.player.y;
+  }
+} 
