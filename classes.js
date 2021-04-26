@@ -1,11 +1,8 @@
-class _point {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
-}
 function Point(x, y) {
-  return new _point(x, y);
+  const Point = {};
+  Point.x = x;
+  Point.y = y;
+  return Point;
 }
 
 class Log {
