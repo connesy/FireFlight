@@ -5,6 +5,8 @@ class Level extends Phaser.Scene {
     super({ key: levelName, active: false});
 
     this.level = level
+    // this.bestScore = bestScores[this.level-1];
+    this.bestScore = 0;
     this.levelName = levelName;
     this.gameWidth = 6400;
     this.gameHeight = 1600;
@@ -20,13 +22,15 @@ class Level extends Phaser.Scene {
     this.gameState.wallSpeed = 0.8;
     this.gameState.visionPlayer = 600; // Is modified later, based on the level
     // this.gameState.visionCaravan = 200;
-    this.gameState.winXPos = gameWidth - 100;
-    // this.gameState.winXPos = 500;
-    this.gameState.score = 0;
+    // this.gameState.winXPos = gameWidth - 100;
+    this.gameState.winXPos = 500;
+    this.gameState.score = 10000;
     this.gameState.chestPoints = 5000;
     this.gameState.playerSettings = {};
     this.gameState.playerSettings.screenshake = true;
     this.gameState.gameRunning = true;
+    this.gameState.timeBonus = -1;
+    this.gameState.winBonus = 10000;
   }
 
   preload() {
@@ -47,6 +51,10 @@ class Level extends Phaser.Scene {
     this.gameState.frameCount = 0;
     this.gameState.isPaused = false;
     this.gameState.cursorKeys = this.input.keyboard.createCursorKeys();
+    this.gameState.ctrlKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
+
+    this.gameState.gameRunning = true;
+    // this.bestScore = bestScores[this.level-1]
 
     this.input.keyboard.on('keyup-R', () => {
       this.add.text(500, 500, "Restarting level ...")
@@ -75,6 +83,12 @@ class Level extends Phaser.Scene {
     this.input.keyboard.on('keyup-M', () => {
       this.scene.start('MainMenu');
     });
+
+    
+    // // Remove the last placed waypoint from the map
+    // this.input.keyboard.on('keyup-CtrlKey', () => {
+    //   this.removeCaravanLastPoint()
+    // });
 
     this.cameras.main.setBounds(0, 0, gameWidth, gameHeight);
     this.cameras.main.setZoom(1);
@@ -229,7 +243,7 @@ class Level extends Phaser.Scene {
           this.addCaravanWaypoint()
         }
         // Remove the last placed waypoint from the map
-        if (Phaser.Input.Keyboard.JustUp(this.gameState.cursorKeys.shift)) {    
+        if (Phaser.Input.Keyboard.JustUp(this.gameState.ctrlKey)) {    
           this.removeCaravanLastPoint()
         }
 
@@ -296,13 +310,16 @@ class Level extends Phaser.Scene {
         this.moveWoD()
         this.checkWinLoseConditions()
         
-        // Add some points 🤷‍♂️
-        this.gameState.score += 1;
+        // // Add some points 🤷‍♂️
+        this.gameState.score += this.gameState.timeBonus;
     } else { // If game is not running
 
       // Last-minute fix to make sure caravan is not moving when game is paused
       this.gameState.caravan.setVelocityX(0);
       this.gameState.caravan.setVelocityY(0);
+      // Last-minute fix to make sure player is not moving when game is paused
+      this.gameState.player.setVelocityX(0);
+      this.gameState.player.setVelocityY(0);
     }
     
     // Show "fire" particles from WoD
@@ -351,12 +368,19 @@ class Level extends Phaser.Scene {
       caravanIndicatorX, progressBarY - 20, 'caravan').setRotation(Math.PI/2).setOrigin(0.5, 1).setScale(0.4);
     this.gameState.container.add(caravanIndicator);
     this.gameState.container.caravanIndicator = caravanIndicator;  // Add alias to the caravanIndicator object
+
+    // Add best score indicator
+    let bestScoreText = this.add.text(mainCam.width * 0.9, mainCam.height * 0.05, `Best score: ${this.bestScore}`).setOrigin(0.5, 0.5);
+    this.gameState.container.add(bestScoreText);
+    this.gameState.container.bestScoreText = bestScoreText;  // Add alias to the bestScoreText object
   }
 
   updateProgressBar() {
     const mainCam = this.cameras.main.worldView;
     this.gameState.container.x = mainCam.left;
     this.gameState.container.y = mainCam.top;
+
+    // console.log(this.gameState.container);
   
     // Update score text
     this.gameState.container.scoreText.setText(`SCORE: ${this.gameState.score}`);
@@ -365,6 +389,7 @@ class Level extends Phaser.Scene {
     const wodIndicatorX = this.getIndicatorX((this.gameState.WoD.x + this.gameState.WoD.width), mainCam)
     this.gameState.container.wodIndicators.big.x = wodIndicatorX;
     this.gameState.container.wodIndicators.small.x = wodIndicatorX;
+    
   
     // Update position of player indicator
     const playerIndicatorX = this.getIndicatorX(this.gameState.player.x, mainCam)
@@ -404,31 +429,49 @@ class Level extends Phaser.Scene {
     let textPositionX = this.cameras.main.worldView.centerX
     let textPositionY = this.cameras.main.worldView.centerY;
     // let loseText = "Congratulations! You lost!"
-    let loseText = "You lose! \nPress r to restart"
+    let loseText = "You lose! \nPress R to restart"
     this.add.text(textPositionX, textPositionY, loseText,{ font: '32px Arial',align: 'center' }).setOrigin(0.5, 0.5);
+
+    // Update best score indicator
+    console.log(this.gameState.score)
+    this.bestScore = Math.max(this.gameState.score, this.bestScore);
+    this.gameState.container.bestScoreText.setText(`Best score: ${this.bestScore}`);
     //   this.scene.restart();
+
+    // Update the main best score
+    bestScores[this.level-1] = this.bestScore;
   }
 
   winLevel() {
     Logger.DEBUG("Triggered winLevel()")
     this.gameState.gameRunning = false;
+    this.gameState.score += this.gameState.winBonus;
+    this.updateProgressBar()
 
     let textPositionX = this.cameras.main.worldView.centerX
     let textPositionY = this.cameras.main.worldView.centerY;
     // let winText = "Oh no! You won"
     let winText = "Congratulations! \nYou won"
   
+    // Update best score indicator
+    this.bestScore = Math.max(this.gameState.score, this.bestScore);
+    this.gameState.container.bestScoreText.setText(`Best score: ${this.bestScore}`);
+
     // Unlock next level
     let nextLevelName = `Level${this.level + 1}`
     let hasNextLevel = this.scene.manager.keys.hasOwnProperty(nextLevelName);
 
-    if (unlockedLevels.includes(2) == false) {
-      unlockedLevels.push(this.level + 1)
+    if (levelsUnlocked.includes(this.level + 1) == false) {
+      levelsUnlocked.push(this.level + 1)
+    }
+    
+    if (levelsUnlocked.includes(this.level) == false) {
+      levelsCompleted.push(this.level)
     }
 
     if (hasNextLevel) {
       winText += ` ${this.levelName}!\nNow on to ${nextLevelName}!`
-      this.add.text(textPositionX, textPositionY, winText,{ font: '32px Arial',align: 'center' })
+      this.add.text(textPositionX, textPositionY, winText,{ font: '32px Arial',align: 'center' }).setOrigin(0.5, 0.5)
       this.time.addEvent({
           delay: 3000,
           loop: false,

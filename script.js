@@ -3,7 +3,11 @@ const Level1 = new Level(1);
 const Level2 = new Level(2);
 const Level3 = new Level(3);
 
-let unlockedLevels = [1];
+let levelsUnlocked = [1];
+let levelsCompleted = [];
+
+
+let bestScores = [0,0,0];
 
 
 const config = {
