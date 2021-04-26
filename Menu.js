@@ -10,8 +10,8 @@ class MainMenu extends Phaser.Scene {
     }
   
     create(data) {
-      this.add.image(0,0,'backgroundPaper')
-      this.add.text(10,10,'Deeper and deeper into the forest')
+      this.add.image(0, 0, 'backgroundPaper')
+      this.add.text(10, 10, 'Deeper and deeper into the forest')
     }
   
     update(time, delta) {

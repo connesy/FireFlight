@@ -19,6 +19,4 @@ let flickerSize = 5;
 let maxFlicker = 100;
 let minFlicker = -50;
 
-let level2Unlocked = false;
-let level3Unlocked = false;
 let gameFinished = false;

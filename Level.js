@@ -45,6 +45,7 @@ class Level extends Phaser.Scene {
   create(data) {
     console.log(`${this.levelName} has just been started`)
     this.gameState.frameCount = 0;
+    this.gameState.isPaused = false;
     this.gameState.cursorKeys = this.input.keyboard.createCursorKeys();
 
     this.input.keyboard.on('keyup-R', () => {
@@ -53,6 +54,19 @@ class Level extends Phaser.Scene {
       this.events.off();
       this.scene.restart();
       this.gameState.gameRunning = true;
+    });
+
+    this.input.keyboard.on('keyup-P', () => {
+      if (!this.gameState.isPaused) {
+        this.gameState.isPaused = true;
+        this.pausedText = this.add.text(500, 500, "Game paused ...")
+        // this.scene.pause();
+        // this.scene.launch('Paused');
+      } else {
+        // this.scene.resume();
+        this.gameState.isPaused = false;
+        this.pausedText.destroy()
+      }
     });
 
     this.cameras.main.setBounds(0, 0, gameWidth, gameHeight);
