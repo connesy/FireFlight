@@ -17,8 +17,8 @@ class Level extends Phaser.Scene {
     this.minFlicker = -50;
     // Set various game-related properties
     this.gameState = {};
-    this.gameState.wallSpeed = 1;
-    this.gameState.visionPlayer = 600;
+    this.gameState.wallSpeed = 0.8;
+    this.gameState.visionPlayer = 600; // Is modified later, based on the level
     // this.gameState.visionCaravan = 200;
     this.gameState.winXPos = gameWidth - 100;
     // this.gameState.winXPos = 500;
@@ -43,7 +43,7 @@ class Level extends Phaser.Scene {
   }
 
   create(data) {
-    console.log(`${this.levelName} has just been started`)
+    // console.log(`${this.levelName} has just been started`)
     this.gameState.frameCount = 0;
     this.gameState.isPaused = false;
     this.gameState.cursorKeys = this.input.keyboard.createCursorKeys();
@@ -59,18 +59,36 @@ class Level extends Phaser.Scene {
     this.input.keyboard.on('keyup-P', () => {
       if (!this.gameState.isPaused) {
         this.gameState.isPaused = true;
+        this.gameState.gameRunning = false;
         this.pausedText = this.add.text(500, 500, "Game paused ...")
         // this.scene.pause();
         // this.scene.launch('Paused');
       } else {
         // this.scene.resume();
         this.gameState.isPaused = false;
+        this.gameState.gameRunning = true;
         this.pausedText.destroy()
       }
     });
 
+    // Button for returning to main menu
+    this.input.keyboard.on('keyup-M', () => {
+      this.scene.start('MainMenu');
+    });
+
     this.cameras.main.setBounds(0, 0, gameWidth, gameHeight);
     this.cameras.main.setZoom(1);
+
+    // Set level settings
+    if (this.level == 1){
+      this.gameState.visionPlayer = 1400
+    }
+    if (this.level == 2){
+      this.gameState.visionPlayer = 1000
+    }
+    if (this.level == 3){
+      this.gameState.visionPlayer = 800
+    }
     
     let firstBackGround = this.add.image(0, 0, 'backgroundPaper').setOrigin(0);
     const bgH = firstBackGround.height;
@@ -159,7 +177,7 @@ class Level extends Phaser.Scene {
   
     // Caravan 
     this.gameState.caravan = this.physics.add.sprite(this.gameState.player.x/2, this.gameState.player.y, 'caravan').setSize(50, 50)
-    this.gameState.caravan.moveSpeed = 100;
+    this.gameState.caravan.moveSpeed = 150;
     this.gameState.caravan.visionRadius = 300;
     this.gameState.caravan.setInteractive();
     this.physics.add.collider(this.gameState.caravan, treeGroup)
@@ -254,8 +272,10 @@ class Level extends Phaser.Scene {
           flickerSize = flickerSize < minFlicker ? minFlicker : flickerSize
           flickerSize = flickerSize > maxFlicker ? maxFlicker : flickerSize
 
-          this.gameState.spotlight.displayWidth = this.gameState.visionPlayer + flickerSize;
-          this.gameState.spotlight.displayHeight = this.gameState.visionPlayer + flickerSize;
+          let curProgressDiff = 400*(this.gameState.player.x/gameWidth);
+
+          this.gameState.spotlight.displayWidth = this.gameState.visionPlayer + flickerSize  -curProgressDiff;
+          this.gameState.spotlight.displayHeight = this.gameState.visionPlayer + flickerSize -curProgressDiff;
         }
     
         // if ((this.gameState.frameCount % 10) == 0){
@@ -278,7 +298,15 @@ class Level extends Phaser.Scene {
         
         // Add some points 🤷‍♂️
         this.gameState.score += 1;
-    } 
+    } else { // If game is not running
+
+      // Last-minute fix to make sure caravan is not moving when game is paused
+      this.gameState.caravan.setVelocityX(0);
+      this.gameState.caravan.setVelocityY(0);
+    }
+    
+    // Show "fire" particles from WoD
+    this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x + this.gameState.WoD.width, gameHeight * Math.random());
   }
 
   addProgressBar() {
@@ -375,24 +403,32 @@ class Level extends Phaser.Scene {
   
     let textPositionX = this.cameras.main.worldView.centerX
     let textPositionY = this.cameras.main.worldView.centerY;
-    let loseText = "Congratulations! You lost!"
-    this.add.text(textPositionX, textPositionY, loseText).setOrigin(0.5, 0.5);
+    // let loseText = "Congratulations! You lost!"
+    let loseText = "You lose! \nPress r to restart"
+    this.add.text(textPositionX, textPositionY, loseText,{ font: '32px Arial',align: 'center' }).setOrigin(0.5, 0.5);
     //   this.scene.restart();
   }
 
   winLevel() {
     Logger.DEBUG("Triggered winLevel()")
+    this.gameState.gameRunning = false;
+
     let textPositionX = this.cameras.main.worldView.centerX
     let textPositionY = this.cameras.main.worldView.centerY;
-    let winText = "Oh no! You won"
+    // let winText = "Oh no! You won"
+    let winText = "Congratulations! \nYou won"
   
     // Unlock next level
     let nextLevelName = `Level${this.level + 1}`
     let hasNextLevel = this.scene.manager.keys.hasOwnProperty(nextLevelName);
 
+    if (unlockedLevels.includes(2) == false) {
+      unlockedLevels.push(this.level + 1)
+    }
+
     if (hasNextLevel) {
       winText += ` ${this.levelName}!\nNow on to ${nextLevelName}!`
-      this.add.text(textPositionX, textPositionY, winText)
+      this.add.text(textPositionX, textPositionY, winText,{ font: '32px Arial',align: 'center' })
       this.time.addEvent({
           delay: 3000,
           loop: false,
@@ -402,7 +438,7 @@ class Level extends Phaser.Scene {
       });
     } else {
       winText += ` The Game!`
-      this.add.text(textPositionX, textPositionY, winText)
+      this.add.text(textPositionX, textPositionY, winText,{ font: '32px Arial',align: 'center' })
       this.gameState.gameFinished = true
     }
   }
@@ -481,7 +517,7 @@ class Level extends Phaser.Scene {
     // this.gameState.WoD.emitter.x = this.gameState.WoD.x;
     // this.gameState.WoD.emitter.y = gameHeight*Math.random();
   
-    this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x + this.gameState.WoD.width, gameHeight * Math.random());
+    // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x + this.gameState.WoD.width, gameHeight * Math.random());
     // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x+20,gameHeight*Math.random());
     // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x+20,gameHeight*Math.random());
     // this.gameState.WoD.emitter.emitParticleAt(this.gameState.WoD.x+20,gameHeight*Math.random());
