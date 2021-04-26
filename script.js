@@ -1,6 +1,13 @@
+const Menu = new MainMenu();
 const Level1 = new Level(1);
 const Level2 = new Level(2);
 const Level3 = new Level(3);
+
+let levelsUnlocked = [1];
+let levelsCompleted = [];
+
+
+let bestScores = [0,0,0];
 
 
 const config = {
@@ -17,6 +24,7 @@ const config = {
     }
   },
   scene: [
+    Menu,
     Level1,
     Level2,
     Level3
