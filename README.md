@@ -1,3 +1,3 @@
 # FireFlight
 
-**Created in 72 hours for Ludum Dare 48 in tight collaboration with [rasmuspedersen1992](https://github.com/rasmuspedersen1992)**
+**Created in 72 hours for the [Ludum Dare 48](https://ldjam.com/events/ludum-dare/48) game jam in tight collaboration with [rasmuspedersen1992](https://github.com/rasmuspedersen1992)**
